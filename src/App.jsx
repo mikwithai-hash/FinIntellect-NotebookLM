@@ -57,6 +57,7 @@ export default function App() {
   const [isListening, setIsListening] = useState(false);
 
   const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Chat History
   const [chatHistory, setChatHistory] = useState([
@@ -488,6 +489,32 @@ Instructions:
     showToast("Archived audit session purged.", "info");
   };
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const textContent = event.target.result;
+      const newDoc = {
+        id: `doc-${Date.now()}`,
+        title: file.name.replace(/\.[^/.]+$/, ""), // strip file extension
+        date: new Date().toISOString().split('T')[0],
+        content: textContent
+      };
+      setDocuments(prev => [...prev, newDoc]);
+      setSelectedDocId(newDoc.id);
+      setIsEditingMetrics(false);
+      showToast(`Imported "${file.name}" successfully.`, "success");
+    };
+    reader.onerror = () => {
+      showToast("Error processing selected document.", "error");
+    };
+    reader.readAsText(file);
+    // Reset file input value to allow re-upload of same file
+    e.target.value = '';
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 font-sans flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300">
       
@@ -515,6 +542,21 @@ Instructions:
             <Clock className="w-3.5 h-3.5 text-emerald-400" /> Snapshot Audit
           </button>
           
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+            accept=".txt,.csv,.json,.md,text/*" 
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-750 border border-slate-700/80 px-4 py-2.5 rounded-xl transition-all cursor-pointer"
+            title="Upload local ledger reports (.txt, .csv, .json, .md)"
+          >
+            <Upload className="w-4 h-4 text-emerald-400" /> Upload Document
+          </button>
+
           <button 
             onClick={handleAddNewDocument}
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/10 transition-all cursor-pointer"
